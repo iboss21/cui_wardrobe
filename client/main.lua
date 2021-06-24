@@ -1,8 +1,8 @@
-ESX = nil
+QBCore = nil
 
 Citizen.CreateThread(function()
-    while ESX == nil do
-        TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
+    while QBCore == nil do
+        TriggerEvent('QBCore:GetObject', function(obj) QBCore = obj end)
         Citizen.Wait(0)
     end
 end)
@@ -12,6 +12,52 @@ local isOpening = false
 local isLoading = false
 local outfits = {}
 
+-- Default controls
+
+Citizen.CreateThread(function()
+    while true do
+        if isVisible then
+            DisableControlAction(0, 1, true)
+            DisableControlAction(0, 2, true)
+        end
+        Citizen.Wait(0)
+    end
+end)
+
+-- Main Thread
+
+CreateThread(function()
+    while true do
+        Wait(1)
+        local sleep = true
+        local playerCoords = GetEntityCoords(PlayerPedId())
+
+        for i=1, #Config.Locations do
+            local loc = Config.Locations[i]
+            local distance = #(playerCoords - vector3(loc[1], loc[2], loc[3]))
+            if distance < 2.5 and not isVisible then
+                sleep = false
+                DisplayTooltip('Access Outfits')
+                if IsControlJustPressed(1, 38) then
+                    TriggerEvent('cui_wardrobe:open')
+                end
+            end
+        end
+
+        if sleep then
+            Wait(500)
+        end
+    end
+end)
+
+-- Functions
+
+function DisplayTooltip(suffix)
+    SetTextComponentFormat('STRING')
+    AddTextComponentString('Press ~INPUT_PICKUP~ To ' .. suffix)
+    DisplayHelpTextFromStringLabel(0, 0, 1, -1)
+end
+
 function setVisible(visible)
     SetNuiFocus(visible, visible)
     SendNUIMessage({
@@ -19,10 +65,6 @@ function setVisible(visible)
         value = visible
     })
     isVisible = visible
-
-    if Config.HideMinimapOnOpen then
-        DisplayRadar(not visible)
-    end
 end
 
 function refreshUI()
@@ -32,7 +74,8 @@ function refreshUI()
         if outfits[i] ~= nil then
             -- existing outfit
             local gender = nil
-            if outfits[i].data.sex == 0 then
+            --if outfits[i].data.sex == 0 then
+            if QBCore.Functions.GetPlayerData().charinfo.gender == 0 then
                 gender = 'male'
             else
                 gender = 'female'
@@ -59,14 +102,15 @@ function refreshUI()
     })
 end
 
+-- Events
+
 RegisterNetEvent('cui_wardrobe:open')
 AddEventHandler('cui_wardrobe:open', function()
     if not isOpening then
         isOpening = true
         isDataLoaded = false
         RequestStreamedTextureDict('shared')
-
-        ESX.TriggerServerCallback('cui_wardrobe:getPlayerOutfits', function(data)
+        QBCore.Functions.TriggerCallback('cui_wardrobe:getPlayerOutfits', function(data)
             if data ~= nil then
                 outfits = data
             else
@@ -91,6 +135,8 @@ AddEventHandler('cui_wardrobe:close', function()
     setVisible(false)
 end)
 
+-- NUI
+
 RegisterNUICallback('close', function(data, cb)
     TriggerEvent('cui_wardrobe:close')
 end)
@@ -106,7 +152,7 @@ RegisterNUICallback('save', function(data, cb)
         Wait(100)
     end
 
-    ESX.TriggerServerCallback('cui_wardrobe:saveOutfit', function(callback)
+    QBCore.Functions.TriggerCallback('cui_wardrobe:saveOutfit', function(callback)
         if callback then
             -- TODO: save success
             SendNUIMessage({
@@ -122,7 +168,7 @@ RegisterNUICallback('save', function(data, cb)
 end)
 
 RegisterNUICallback('clear', function(data, cb)
-    ESX.TriggerServerCallback('cui_wardrobe:deleteOutfit', function(callback)
+    QBCore.Functions.TriggerCallback('cui_wardrobe:deleteOutfit', function(callback)
         if callback then
             SendNUIMessage({
                 action = 'completeDeletion',
@@ -138,7 +184,7 @@ end)
 
 RegisterNUICallback('load', function(data, cb)
     if not isLoading then
-        ESX.TriggerServerCallback('cui_wardrobe:getOutfitInSlot', function(outfit)
+        QBCore.Functions.TriggerCallback('cui_wardrobe:getOutfitInSlot', function(outfit)
             if outfit and outfit['data'] then
                 -- Outfit data exists
                 TriggerEvent('cui_character:updateClothes', outfit['data'], true, true, function()
@@ -162,109 +208,5 @@ RegisterNUICallback('playSound', function(data, cb)
         PlaySoundFrontend(-1, 'Reset_Prop_Position', 'DLC_Dmod_Prop_Editor_Sounds', 0)
     elseif sound == 'error' then
         PlaySoundFrontend(-1, 'ERROR', 'HUD_FRONTEND_DEFAULT_SOUNDSET', 1)
-    end
-end)
-
--- Map Locations
-if not Config.UseAnywhere then
-    local closestCoords = nil
-    local distToClosest = 1000.0
-    local inMarkerRange = false
-
-    function DisplayTooltip(suffix)
-        SetTextComponentFormat('STRING')
-        AddTextComponentString('Press ~INPUT_PICKUP~ to ' .. suffix)
-        DisplayHelpTextFromStringLabel(0, 0, 1, -1)
-    end
-
-    function UpdateClosestLocation(locations)
-        local pedPosition = GetEntityCoords(PlayerPedId())
-        for i = 1, #locations do
-            local loc = locations[i]
-            local distance = GetDistanceBetweenCoords(pedPosition.x, pedPosition.y, pedPosition.z, loc[1], loc[2], loc[3], true)
-            if (distToClosest == nil or closestCoords == nil) or (distance < distToClosest) or (closestCoords == loc) then
-                distToClosest = distance
-                closestCoords = vector3(loc[1], loc[2], loc[3])
-            end
-
-            if (distToClosest < 20.0) and (distToClosest > 1.0) then
-                inMarkerRange = true
-            else
-                inMarkerRange = false
-            end
-        end
-    end
-
-    local waitTime = 2000
-    Citizen.CreateThread(function()
-        while true do
-            if distToClosest > 500.0 then
-                waitTime = 5000
-            elseif distToClosest > 100.0 then
-                waitTime = 2000
-            else
-                waitTime = 500
-            end
-
-            UpdateClosestLocation(Config.Locations)
-            Citizen.Wait(waitTime)
-        end
-    end)
-
-    Citizen.CreateThread(function()
-        while true do
-            if inMarkerRange then
-                DrawMarker(
-                    20,
-                    closestCoords.x, closestCoords.y, closestCoords.z,
-                    0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.0,
-                    1.0, 1.0, 1.0,
-                    45, 110, 185, 128,
-                    true,   -- move up and down
-                    false,
-                    2,
-                    true,  -- rotate
-                    nil,
-                    nil,
-                    false
-                )
-            end
-
-            if distToClosest < 1.0 and (not isVisible) then
-                DisplayTooltip('use wardrobe.')
-                if IsControlJustPressed(1, 38) then
-                    TriggerEvent('cui_wardrobe:open')
-                end
-            end
-
-            Citizen.Wait(0)
-        end
-    end)
-
-    if Config.DisplayBlips then
-        Citizen.CreateThread(function()
-            for k, v in ipairs(Config.Locations) do
-                local blip = AddBlipForCoord(v)
-                SetBlipSprite(blip, 366)
-                SetBlipColour(blip, 84)
-                SetBlipAsShortRange(blip, true)
-
-                BeginTextCommandSetBlipName('STRING')
-                AddTextComponentString('Wardrobe')
-                EndTextCommandSetBlipName(blip)
-            end
-        end)
-    end
-end
-
--- Default controls
-Citizen.CreateThread(function()
-    while true do
-        if isVisible then
-            DisableControlAction(0, 1, true)
-            DisableControlAction(0, 2, true)
-        end
-        Citizen.Wait(0)
     end
 end)

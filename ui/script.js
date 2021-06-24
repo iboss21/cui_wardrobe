@@ -75,7 +75,7 @@ function showConfirmPanel(slot, confirmCallback, cancelCallback) {
 
             Possibly the button is removed too fast?
         */
-        $.post('https://cui_wardrobe/playSound', JSON.stringify({
+        $.post('https://qb-cui_wardrobe/playSound', JSON.stringify({
             sound: 'smallbuttonclick'
         }));
     });
@@ -89,13 +89,13 @@ function confirmEdit(slot) {
     let input = slot.find('.slot-input');
     let name = input.val().trim();
     if (name) {
-        $.post('https://cui_wardrobe/save', JSON.stringify({
+        $.post('https://qb-cui_wardrobe/save', JSON.stringify({
             slot: slot.data('number'),
             name: name
         }));
     }
     else {
-        $.post('https://cui_wardrobe/playSound', JSON.stringify({
+        $.post('https://qb-cui_wardrobe/playSound', JSON.stringify({
             sound: 'error'
         }));
     }
@@ -106,7 +106,7 @@ function cancelEdit(slot) {
 }
 
 function confirmClear(slot) {
-    $.post('https://cui_wardrobe/clear', JSON.stringify({
+    $.post('https://qb-cui_wardrobe/clear', JSON.stringify({
         slot: slot.data('number'),
     }));
 }
@@ -206,11 +206,11 @@ function clearSlot(slot) {
 
 $('#exit').on('click', function(event) {
     if(!editing) {
-        $.post('https://cui_wardrobe/close', JSON.stringify({
+        $.post('https://qb-cui_wardrobe/close', JSON.stringify({
         }));
     }
     else {
-        $.post('https://cui_wardrobe/playSound', JSON.stringify({
+        $.post('https://qb-cui_wardrobe/playSound', JSON.stringify({
             sound: 'error'
         }));
     }
@@ -245,16 +245,16 @@ $('#outfit-list').on('click', 'div.slot', function(event) {
     if (!editing) {
         let compatibleModel = (model == $(this).data('gender'));
         if ($(this).hasClass('empty') || !compatibleModel) {
-            $.post('https://cui_wardrobe/playSound', JSON.stringify({
+            $.post('https://qb-cui_wardrobe/playSound', JSON.stringify({
                 sound: 'error'
             }));
         }
         else {
             let number = $(this).data('number');
-            $.post('https://cui_wardrobe/load', JSON.stringify({
+            $.post('https://qb-cui_wardrobe/load', JSON.stringify({
                 slot: number,
             }));
-            $.post('https://cui_wardrobe/playSound', JSON.stringify({
+            $.post('https://qb-cui_wardrobe/playSound', JSON.stringify({
                 sound: 'changeoutfit'
             }));
         }
@@ -319,13 +319,13 @@ $('#bottom-panel').on('mouseleave', '#exit', function() {
 
 // Sounds
 $('#outfit-list').on('click', 'button', function() {
-    $.post('https://cui_wardrobe/playSound', JSON.stringify({
+    $.post('https://qb-cui_wardrobe/playSound', JSON.stringify({
         sound: 'smallbuttonclick'
     }));
 });
 
 $('#bottom-panel').on('click', 'button', function() {
-    $.post('https://cui_wardrobe/playSound', JSON.stringify({
+    $.post('https://qb-cui_wardrobe/playSound', JSON.stringify({
         sound: 'panelbuttonclick'
     }));
 });
