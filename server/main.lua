@@ -28,7 +28,7 @@ QBCore.Functions.CreateCallback('cui_wardrobe:saveOutfit', function(source, cb, 
             exports.ghmattimysql:scalar('SELECT 1 FROM player_outfits WHERE owner = @identifier AND slot = @slot', {['@identifier'] = identifier,['@slot'] = slot}, function(exists)
                 -- TODO: Maybe split new (insert into) and edit (update) ?
                 if exists then
-                    exports.ghmattimysql:execute("UPDATE `player_outfits` SET `name` = '"..name.."', `clothes` = '"..json.encode(clothes).."' WHERE citizenid = '"..xPlayer.PlayerData.citizenid.."' AND `slot` = '"..slot.."'", function(rowsChanged)
+                    exports.ghmattimysql:execute("UPDATE `player_outfits` SET `name` = '"..name.."', `clothes` = '"..json.encode(clothes).."' WHERE owner = '"..xPlayer.PlayerData.citizenid.."' AND `slot` = '"..slot.."'", function(rowsChanged)
                         if rowsChanged then
                             cb(true)
                         else
