@@ -1,38 +1,28 @@
-QBCore = nil
-
-Citizen.CreateThread(function()
-    while QBCore == nil do
-        TriggerEvent('QBCore:GetObject', function(obj) QBCore = obj end)
-        Citizen.Wait(0)
-    end
-end)
-
+local QBCore = exports['qb-core']:GetCoreObject()
 local isVisible = false
 local isOpening = false
 local isLoading = false
 local outfits = {}
 
 -- Default controls
-
-Citizen.CreateThread(function()
+CreateThread(function()
     while true do
         if isVisible then
             DisableControlAction(0, 1, true)
             DisableControlAction(0, 2, true)
         end
-        Citizen.Wait(0)
+        Wait(0)
     end
 end)
 
 -- Main Thread
-
 CreateThread(function()
     while true do
         Wait(1)
         local sleep = true
         local playerCoords = GetEntityCoords(PlayerPedId())
-
-        for i=1, #Config.Locations do
+        
+        for i = 1, #Config.Locations do
             local loc = Config.Locations[i]
             local distance = #(playerCoords - vector3(loc[1], loc[2], loc[3]))
             if distance < 2.5 and not isVisible then
@@ -43,7 +33,7 @@ CreateThread(function()
                 end
             end
         end
-
+        
         if sleep then
             Wait(500)
         end
@@ -51,7 +41,6 @@ CreateThread(function()
 end)
 
 -- Functions
-
 function DisplayTooltip(suffix)
     SetTextComponentFormat('STRING')
     AddTextComponentString('Press ~INPUT_PICKUP~ To ' .. suffix)
@@ -80,21 +69,21 @@ function refreshUI()
             else
                 gender = 'female'
             end
-
-            html = html .. '<div class="slot" data-number="' .. i .. '" data-gender="' .. gender .. '"><span class="slot-text">' .. outfits[i].name ..'</span><div class="controls"><button class="edit"></button><button class="clear"></button></div></div>'
+            
+            html = html .. '<div class="slot" data-number="' .. i .. '" data-gender="' .. gender .. '"><span class="slot-text">' .. outfits[i].name .. '</span><div class="controls"><button class="edit"></button><button class="clear"></button></div></div>'
         else
             -- empty slot
-            html = html .. '<div class="slot empty" data-number="' .. i .. '"><span class="slot-text">' .. emptyName ..'</span><div class="controls"><button class="edit"></button></div></div>'
+            html = html .. '<div class="slot empty" data-number="' .. i .. '"><span class="slot-text">' .. emptyName .. '</span><div class="controls"><button class="edit"></button></div></div>'
         end
     end
-
+    
     local model = 'unknown'
     if GetEntityModel(PlayerPedId()) == GetHashKey('mp_m_freemode_01') then
         model = 'male'
     elseif GetEntityModel(PlayerPedId()) == GetHashKey('mp_f_freemode_01') then
         model = 'female'
     end
-
+    
     SendNUIMessage({
         action = 'refresh',
         html = html,
@@ -103,9 +92,7 @@ function refreshUI()
 end
 
 -- Events
-
-RegisterNetEvent('cui_wardrobe:open')
-AddEventHandler('cui_wardrobe:open', function()
+RegisterNetEvent('cui_wardrobe:open', function()
     if not isOpening then
         isOpening = true
         isDataLoaded = false
@@ -118,40 +105,38 @@ AddEventHandler('cui_wardrobe:open', function()
             end
             isDataLoaded = true
         end)
-
+        
         while not HasStreamedTextureDictLoaded('shared') or not isDataLoaded do
             Wait(100)
         end
-
+        
         refreshUI()
         setVisible(true)
         isOpening = false
     end
 end)
 
-RegisterNetEvent('cui_wardrobe:close')
-AddEventHandler('cui_wardrobe:close', function()
+RegisterNetEvent('cui_wardrobe:close', function()
     SetStreamedTextureDictAsNoLongerNeeded('shared')
     setVisible(false)
 end)
 
 -- NUI
-
 RegisterNUICallback('close', function(data, cb)
     TriggerEvent('cui_wardrobe:close')
 end)
 
 RegisterNUICallback('save', function(data, cb)
     data['clothes'] = nil
-
+    
     TriggerEvent('cui_character:getCurrentClothes', function(currentClothes)
         data['clothes'] = currentClothes
     end)
-
+    
     while not data['clothes'] do
         Wait(100)
     end
-
+    
     QBCore.Functions.TriggerCallback('cui_wardrobe:saveOutfit', function(callback)
         if callback then
             -- TODO: save success
@@ -203,7 +188,7 @@ RegisterNUICallback('playSound', function(data, cb)
     if sound == 'changeoutfit' then
         PlaySoundFrontend(-1, 'Continue_Appears', 'DLC_HEIST_PLANNING_BOARD_SOUNDS', 1)
     elseif sound == 'smallbuttonclick' then
-        PlaySoundFrontend( -1, 'HACKING_MOVE_CURSOR', 0, 1 )
+        PlaySoundFrontend(-1, 'HACKING_MOVE_CURSOR', 0, 1)
     elseif sound == 'panelbuttonclick' then
         PlaySoundFrontend(-1, 'Reset_Prop_Position', 'DLC_Dmod_Prop_Editor_Sounds', 0)
     elseif sound == 'error' then
