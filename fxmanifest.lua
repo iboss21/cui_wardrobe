@@ -26,5 +26,5 @@ files {
 }
 
 dependencies {
-    'qb-cui_character'
+    'cui_character' -- removed qb- on front
 }
